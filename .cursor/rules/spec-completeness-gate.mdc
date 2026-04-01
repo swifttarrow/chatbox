@@ -1,0 +1,9 @@
+## Spec Readiness Check
+
+Before implementation begins:
+
+- All tasks must be defined
+- Each task must be unambiguous
+- Dependencies between tasks must be clear
+
+If not → return to Spec phase

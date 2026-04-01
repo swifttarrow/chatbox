@@ -1,0 +1,12 @@
+---
+alwaysApply: true
+---
+
+## Execution Integrity Rule
+
+- DO NOT deviate from the task
+- DO NOT optimize beyond the task
+- DO NOT introduce unrequested changes
+
+If a problem is detected:
+→ STOP and report instead of improvising

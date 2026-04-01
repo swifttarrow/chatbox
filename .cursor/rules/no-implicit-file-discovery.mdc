@@ -1,0 +1,5 @@
+## File Access Rules
+
+- Tasks MUST explicitly reference file paths
+- DO NOT rely on searching or guessing file locations
+- DO NOT infer structure from the repo

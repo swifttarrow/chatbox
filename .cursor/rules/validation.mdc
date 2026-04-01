@@ -1,0 +1,74 @@
+# Validation Phase
+
+Validation ensures the implementation matches the **specs and tasks**.
+
+---
+
+## Validation Scope
+
+Validation MUST be performed:
+
+* After each task (lightweight)
+* After each milestone (full validation)
+
+---
+
+## Task-Level Validation
+
+For each completed task:
+
+* Verify all acceptance criteria are satisfied
+* Confirm expected outputs were produced
+* Ensure no unintended side effects
+
+If any check fails:
+→ STOP and fix before proceeding
+
+---
+
+## Milestone-Level Validation
+
+For each milestone:
+
+* Verify milestone goals are achieved
+* Confirm all tasks are complete and correct
+* Check for integration issues between tasks
+
+---
+
+## Required Checks
+
+* All task acceptance criteria pass
+* No regressions introduced
+* Behavior matches spec requirements
+* Outputs match expected structure and location
+
+---
+
+## Failure Handling
+
+If validation fails:
+
+* DO NOT proceed
+* Identify the failing task or spec
+* Fix implementation or update spec explicitly
+
+---
+
+## Validation Output
+
+Provide:
+
+* Pass/fail per task or milestone
+* Any deviations from spec
+* Identified bugs or gaps
+* Recommended fixes
+
+---
+
+## Execution Order
+
+1. Implement task
+2. Validate task
+3. Repeat
+4. Validate milestone

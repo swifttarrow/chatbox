@@ -1,0 +1,7 @@
+## Task Structure Requirements
+
+Each task MUST define:
+
+- Inputs (files, APIs, state)
+- Outputs (files, side effects)
+- Acceptance criteria (testable)

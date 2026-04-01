@@ -1,0 +1,206 @@
+---
+
+description: PRD → Research → Spec → Implement → Validate workflow for greenfield projects (single-PRD, AI-agent optimized)
+alwaysApply: true
+---
+
+# Agent Workflow
+
+This project uses a **PRD → Research → Spec → Implement → Validate** workflow for greenfield (new) projects.
+
+The system is designed for **deterministic execution by AI agents**, with a single source of truth during implementation.
+
+---
+
+# Phase 0: PRD (Input – Human-Aligned)
+
+The project uses a **single PRD** located at:
+
+docs/prd.md
+This PRD defines the **entire product initiative**.
+
+---
+
+## PRD Contents
+
+The PRD should include:
+
+* Problem statement
+* Goals / success metrics
+* User experience expectations
+* Constraints (non-technical)
+* Product-level non-functional requirements (user-visible)
+
+---
+
+## PRD Rules
+
+* PRD is **NOT executable**
+* PRD is **read once, then compiled into specs**
+* PRD must NOT be referenced during implementation
+* PRD may only be updated **between full workflow cycles**
+
+---
+
+## Future Evolution (Optional)
+
+If the project later splits into clearly independent initiatives:
+
+* The PRD MAY be split into multiple PRDs
+* Each new PRD becomes its own isolated workflow
+* This should only happen when boundaries are explicit (not preemptively)
+
+---
+
+# Phase 1: Research (Exploration – Non-Authoritative)
+
+Clarify:
+
+* Requirements and constraints
+* External APIs, libraries, patterns
+* Tradeoffs and unknowns
+
+Output:
+
+* Structured notes in `docs/research/`
+
+Rules:
+
+* DO NOT implement
+* DO NOT treat research as instructions
+* Expect incomplete or conflicting ideas
+
+---
+
+# Phase 2: Spec (Compilation – Source of Truth)
+
+Transform PRD + research into **executable specs**.
+
+---
+
+## Structure
+
+docs/specs/
+mX-feature-name/
+README.md        # milestone spec (context, goals, constraints)
+001-task.md      # atomic, executable task
+002-task.md
+
+---
+
+## Definitions
+
+* **Spec (milestone)** = outcome + constraints
+* **Task** = fully-specified, executable unit of work
+
+---
+
+## Rules
+
+* Tasks MUST be:
+  * Unambiguous
+  * Self-contained
+  * Immediately executable
+* Specs MUST NOT be directly executed
+* Tasks are the ONLY valid execution unit
+
+---
+
+# Phase 3: Implement (Execution – Deterministic)
+
+Execute tasks sequentially.
+
+---
+
+## Rules
+
+* Only execute from `docs/specs/`
+* DO NOT reference PRD or research during execution
+* DO NOT infer beyond the task
+* Verify each task before proceeding
+
+---
+
+# Phase 4: Validate (Verification)
+
+Ensure implementation matches specs.
+
+---
+
+## Check
+
+* All task acceptance criteria are met
+* Behavior matches milestone goals
+* No divergence from decisions or constraints
+
+---
+
+## Output
+
+* Bugs, gaps, or inconsistencies
+* Suggested spec updates (if needed)
+
+---
+
+# Authority Rules (Critical)
+
+Hierarchy of truth:
+
+1. `docs/specs/` → ✅ SOURCE OF TRUTH (execution)
+2. `docs/decisions/` → constraints and rules
+3. `docs/architecture/` → system understanding
+4. `docs/research/` → ❌ NOT authoritative
+5. `docs/prd.md` → ❌ input only (not used during execution)
+
+---
+
+## Strict Rules
+
+* NEVER execute from PRD or research
+* NEVER treat exploratory docs as instructions
+* If conflict exists → follow specs
+
+---
+
+# Context Management
+
+* Keep context utilization in the 40–60% range
+* Compact aggressively between phases
+* Distill insights into structured artifacts before progressing
+
+---
+
+# Artifact Locations
+
+* PRD: `docs/prd/project.md`
+* Research: `docs/research/`
+* Specs: `docs/specs/`
+* Decisions (optional): `docs/decisions/`
+* Architecture (optional): `docs/architecture/`
+
+---
+
+# When to Use
+
+Use this workflow for:
+
+* Greenfield projects
+* Multi-step or multi-component systems
+* Work requiring alignment across sessions
+
+Skip for:
+
+* Small, single-file changes
+* Simple edits in existing codebases
+
+---
+
+# Summary
+
+* One PRD defines the entire project
+* Research explores solutions
+* Specs define the system
+* Tasks execute deterministically
+
+There must be exactly ONE execution source of truth:
+`docs/specs/`

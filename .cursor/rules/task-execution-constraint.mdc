@@ -1,0 +1,10 @@
+---
+alwaysApply: true
+---
+
+## Task Execution Constraint
+
+Each task MUST be executable by a stateless agent with no prior context.
+
+- All required context must be included or referenced
+- No reliance on previous tasks’ implicit state

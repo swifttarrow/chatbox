@@ -4,6 +4,8 @@
 
 ChatBridge is a chat platform that lets the assistant work with interactive third-party apps inside the conversation UI. The key design decision is that apps may control UI, but the server controls truth. This keeps the system flexible enough to support chess, an equation solver, and an OAuth-backed external app without letting browser code become authoritative for security, persistence, or model context.
 
+**Deployment shape:** ChatBridge is implemented as a **dedicated server** (orchestration, persistence, LLM and tool execution, and the realtime gateway for bridge protocol traffic). The **existing chatbox client** remains the **host**: it keeps the current chat UI, opens the persistent session to the ChatBridge server, mounts sandboxed app iframes, and performs host-side routing and validation for app events. New bridge-specific behavior is added to that client; the product does not replace chatbox with a new front-end.
+
 The platform uses sandboxed iframes for app UI, server-side orchestration for LLM and tool execution, app-specific server adapters for canonical state transitions, and bounded per-turn tool injection so prompt size stays manageable. The MVP proves one complete hybrid app flow with Chess, then extends the same contract to simpler and more authenticated apps.
 
 ## Purpose
@@ -30,13 +32,16 @@ The architecture must support:
 - **Bounded context**: The model sees compact app snapshots and only the tools relevant to the current conversation.
 - **Policy first**: Teacher allowlists and auth state help decide which apps and tools are exposed.
 - **MVP discipline**: Build one full vertical end-to-end before optimizing for a broad ecosystem.
+- **Dedicated server, existing client**: ChatBridge logic that must be authoritative or hold secrets runs on the ChatBridge server; the chatbox app stays the user-facing host and gains bridge protocol integration.
 
 ## Terminology
 
 
-| Term               | Meaning                                                                                                                            |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| **Host**           | The ChatBridge web app shell. Owns chat UI, realtime connection, iframe containers, and host-side message routing.                 |
+| Term                   | Meaning                                                                                                                                 |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chatbox client**     | The existing chatbox web application. Stays the primary chat UI and implements **host** responsibilities for ChatBridge (see **Host**).    |
+| **ChatBridge server**  | Dedicated backend service: realtime gateway, run orchestrator, app adapters, and persistent store for bridge data. Not a second chat UI. |
+| **Host**               | The chatbox client in its role as bridge host: chat UI, connection to the ChatBridge server, iframe containers, host-side message routing. |
 | **App**            | A sandboxed integration rendered in an iframe. May provide custom UI and app-specific client interactions.                         |
 | **App adapter**    | Server-side code that owns canonical state transitions, validation, and any secure external API access for an app.                 |
 | **Tool**           | A server-invocable capability exposed to the model. A tool may or may not involve an app UI.                                       |
@@ -48,18 +53,25 @@ The architecture must support:
 
 ## Architecture Overview
 
-ChatBridge consists of five main parts:
+The system splits into **client (existing chatbox)** and **dedicated ChatBridge server**.
+
+**On the chatbox client (host)**
 
 1. **Host shell**
-  Renders chat, mounts iframe apps, and routes validated browser events.
+  Existing chat UI plus bridge integration: mounts iframe apps, maintains the host–server realtime session, and routes validated browser events per the plugin surface.
+
+**On the ChatBridge server**
+
 2. **Realtime gateway**
-  Carries streaming assistant output, run status, app commands, and app events between browser and server.
+  Carries streaming assistant output, run status, app commands, and app events between the host and server.
 3. **Run orchestrator**
   Owns prompt assembly, model calls, tool invocation, persistence, and continuation logic.
 4. **App adapters**
   Implement server-side validation and state transitions for each app.
 5. **Persistent store**
   Stores users, sessions, conversations, messages, app sessions, OAuth connections, and execution records.
+
+The host never becomes authoritative for canonical state; the server remains the source of truth for everything listed under [Authority model](#authority-model).
 
 ## Execution Model and Trust Boundary
 
@@ -69,7 +81,7 @@ ChatBridge consists of five main parts:
 - **Tool execution** runs on the **server**.
 - **App adapters** run on the **server**.
 - **Third-party app UI** runs in the **browser** inside **sandboxed iframes**.
-- The **host shell** runs in the browser and forwards validated app events to the server.
+- The **host shell** (chatbox client) runs in the browser and forwards validated app events to the **ChatBridge server**.
 
 ### Authority model
 
@@ -349,7 +361,7 @@ Examples:
 
 ### Host responsibilities
 
-The host must:
+The host (chatbox client) must:
 
 - validate message origin
 - validate target app session
@@ -575,21 +587,23 @@ MVP metrics should include:
 
 ## Deployment
 
-### Host and backend
+### Client and server
 
-- Deploy the application runtime on **Railway**
-- Use a managed **PostgreSQL** database or equivalent
-- Keep runtime single-region for MVP unless product needs require otherwise
+- **Chatbox client:** Continues to ship as the existing chatbox front-end. Bridge features (WebSocket client, iframe mounting, host message validation) live in that codebase and call the ChatBridge server over the network.
+- **ChatBridge server:** Deploy the dedicated service on **Railway** (or equivalent), with a managed **PostgreSQL** database or equivalent for bridge persistence.
+- Keep the ChatBridge server **single-region** for MVP unless product needs require otherwise.
+- **Auth:** Platform identity may be established in chatbox; the ChatBridge server must still **verify** the caller on HTTP and realtime connections (for example session or token validation) before executing tools or mutating state. Exact token or session sharing is an integration detail between the two deployables.
 
 ### Topology
 
 MVP topology:
 
-- one web application
-- one realtime channel layer inside the app runtime
-- one database
-- in-repo bundled apps only
-- fixed CSP allowlist
+- **one** chatbox client deployment (browser app users already use)
+- **one** dedicated ChatBridge server deployment
+- **one** realtime channel layer on the ChatBridge server, terminated by the host’s WebSocket client
+- **one** database used by the ChatBridge server
+- in-repo bundled apps only (served or referenced consistently with host CSP)
+- fixed CSP allowlist on the host for iframe origins
 
 ## PRD Alignment
 
@@ -616,6 +630,7 @@ Planned app mapping:
 
 ## Key Technical Decisions
 
+- **Dedicated ChatBridge server** with the **existing chatbox client** as host (no greenfield replacement of the chat UI)
 - **Sandboxed iframes plus `postMessage`** for app UI isolation
 - **Server-orchestrated LLM loop** for prompt assembly, tool execution, and persistence
 - **App adapters on the server** for canonical state transitions and secure integrations
@@ -794,7 +809,9 @@ Hybrid session app with server-owned auth and canonical resource identity
 
 | Topic                               | Decision                                         |
 | ----------------------------------- | ------------------------------------------------ |
-| **Deployment**                      | Railway                                          |
+| **Topology**                        | Dedicated ChatBridge server; existing chatbox client as host |
+| **Deployment (server)**             | Railway (ChatBridge service + DB)                |
+| **Deployment (client)**             | Existing chatbox front-end (bridge integration)  |
 | **First vertical**                  | Chess                                            |
 | **App packaging**                   | In-repo bundles only for MVP                     |
 | **Iframe trust**                    | Untrusted at runtime                             |
@@ -809,19 +826,19 @@ Hybrid session app with server-owned auth and canonical resource identity
 ┌─────────────────────────────────────────────────────────────────────┐
 │                           BROWSER                                   │
 │                                                                     │
-│  ┌────────────────────┐       ┌──────────────────────────────────┐  │
-│  │ Host shell         │       │ Sandboxed app iframe             │  │
-│  │                    │       │                                  │  │
-│  │ - chat UI          │<----->│ - app UI                         │  │
-│  │ - WS connection    │postMsg│ - local view state               │  │
-│  │ - message routing  │       │ - user interactions              │  │
-│  └─────────┬──────────┘       └──────────────────────────────────┘  │
+│  ┌────────────────────────────┐   ┌──────────────────────────────┐  │
+│  │ Chatbox client (host)      │   │ Sandboxed app iframe         │  │
+│  │                            │   │                              │  │
+│  │ - existing chat UI         │<->│ - app UI                     │  │
+│  │ - WS to ChatBridge server  │postMsg│ - local view state        │  │
+│  │ - bridge message routing   │   │ - user interactions          │  │
+│  └─────────┬──────────────────┘   └──────────────────────────────┘  │
 └────────────┼─────────────────────────────────────────────────────────┘
              │
-             │ WebSocket
+             │ WebSocket (to ChatBridge server)
              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                           SERVER                                    │
+│                    CHATBRIDGE SERVER (dedicated)                      │
 │                                                                     │
 │  ┌────────────────────┐   ┌────────────────────┐                    │
 │  │ Realtime gateway   │   │ Run orchestrator   │                    │

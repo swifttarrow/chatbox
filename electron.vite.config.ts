@@ -259,6 +259,15 @@ export default defineConfig(({ mode }) => {
       server: {
         port: 1212,
         strictPort: true,
+        // Same-origin proxy → ChatBridge on :3100 (avoids CORS / fetch failures from /bridge)
+        proxy: {
+          '/chatbridge-api': {
+            target: 'http://127.0.0.1:3100',
+            changeOrigin: true,
+            rewrite: (p) => p.replace(/^\/chatbridge-api/, ''),
+            ws: true,
+          },
+        },
       },
       define: {
         'process.type': '"renderer"',
